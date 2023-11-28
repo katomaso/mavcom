@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mavcom"
+version = "0.0.1"
+authors = [
+  { name="Tomas Peterka", email="prestizni@gmail.com" },
+]
+description = "Mavcom enables you to listen/write mavlink communication on a serial line or USB"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/katomaso/mavcom"
+Issues = "https://github.com/katomaso/mavcom/issues"
