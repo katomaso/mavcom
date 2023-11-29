@@ -1,2 +1,4 @@
 construct
 pymavlink
+pyserial
+python-pcapng

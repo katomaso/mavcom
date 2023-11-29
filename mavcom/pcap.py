@@ -40,13 +40,13 @@ class PCAPFile:
                 self.endian = endian
                 break
         else:
-            raise IOError("Not a pcap file - missing 'magic' bytes in header")
+            raise ValueError("Not a pcap file - missing 'magic' bytes in header")
 
         (self.magic, version_major, version_minor,
             self.thiszone, self.sigfigs,
             self.snaplen, self.linktype) = struct.unpack(self.endian + 'IHHIIII', hdr)
         if (version_major, version_minor) != (2, 4):
-            raise IOError('Cannot handle file version %d.%d' % (version_major,
+            raise ValueError('Cannot handle file version %d.%d' % (version_major,
                                                                 version_minor))
     
     def _write_header(self, snaplen=65535, linktype=1):
