@@ -6,9 +6,9 @@ import pcapng
 
 from pymavlink.dialects.v20 import common as mavlink2
 
-from mavcom.capture import Capture
-from mavcom.replay import Replay
-from mavcom.utils.mav import MavSerial
+from mavsniff.capture import Capture
+from mavsniff.replay import Replay
+from mavsniff.utils.mav import MavSerial
 
 
 def test_capture_timing():

@@ -3,8 +3,8 @@ import pcapng
 import time
 import io
 
-from mavcom.utils.mav import MavSerial
-from mavcom.utils.log import logger
+from mavsniff.utils.mav import MavSerial
+from mavsniff.utils.log import logger
 
 
 INTERFACE_MAGIC = 0x00000001

@@ -7,8 +7,8 @@ import struct
 import signal
 import time
 
-from mavcom.utils.mav import MavSerial
-from mavcom.utils.log import logger
+from mavsniff.utils.mav import MavSerial
+from mavsniff.utils.log import logger
 
 
 class Capture:
@@ -19,7 +19,7 @@ class Capture:
         self.interface_id=0x00
         self.device = MavSerial(device, mavlink_version=mavlink_version)
         self.sbh = pcapng.blocks.SectionHeader(msgid=0, endianness="<", options={
-            'shb_userappl': 'mavcom',
+            'shb_userappl': 'mavsniff',
         })
         self.sbh.register_interface(pcapng.blocks.InterfaceDescription(msdgid=0x01, endianness="<", interface_id=self.interface_id, section=self.sbh, options={
             'if_name': self.device.name,

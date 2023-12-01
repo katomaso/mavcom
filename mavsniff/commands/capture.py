@@ -1,8 +1,8 @@
 import argparse
 import serial
 
-from mavcom.utils.log import logger
-from mavcom.capture import Capture
+from mavsniff.utils.log import logger
+from mavsniff.capture import Capture
 
 class CaptureCommand:
 

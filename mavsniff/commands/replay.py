@@ -1,8 +1,8 @@
 import argparse
 import serial
 
-from mavcom.utils.log import logger
-from mavcom.replay import Replay
+from mavsniff.utils.log import logger
+from mavsniff.replay import Replay
 
 class ReplayCommand:
 
