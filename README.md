@@ -1,21 +1,21 @@
-# MAVCOM
+# mavsniff
 
-Capture and replay MAVLink packets from your drone or GCS. Mavcom enables you to capture packets
-from a serial (emulated) line into PCAPNG file. You can use either real serial line (COMx or /dev/ttyS0)
-or network lines that will encapsulate the packets (UDP/TCP).
+Capture and replay MAVLink packets from your drone or GCS. 
 
-Advantage of storing the packets in pcapng format is that you can open and analyse them using WireShark.
+You can read from a serial line (ttyS0/COMx) or from network (UDP/TCP). Mavsniff stores packets in pcapng format
+so that you can open and analyse them with Wireshark.
 
 ## Instalation
 
-MAVCOM is distributed via PYPI hence install it using `pip install mavcom`. It contains entrypoint
-thus a `mavcom` should be available in your `$PATH`.
+```$ pip install mavsniff```
+
+Mavsniff is distributed via PYPI and an entrypoint `mavsniff` should be available in your `$PATH` after installation.
 
 ## Usage
 
-```
-$ mavcom capture --device /dev/ttyS0 --file recording.pcapng
-$ mavcom replay --file recording.pcapng --device udpout://localhost:5467 
+```bash
+$ mavsniff capture --device /dev/ttyS0 --file recording.pcapng
+$ mavsniff replay --file recording.pcapng --device udpout://localhost:5467 
 ```
 
 Example of available devices:
@@ -23,7 +23,9 @@ Example of available devices:
  * `COMx` - e.g. COM1 or COM4 - standard serial ports on Windows systems
  * `udpin://<host>:<port>` - receive packets via UDP (only for `capture` command)
  * `udpout://<host>:<port>` - send packets via UDP (only for `replay` command)
-_Consult more device schemas on (https://pyserial.readthedocs.io/en/latest/url_handlers.html)[pyserial documenation page]._
+ * `loop://` - for local testing (do not send more than 100 packets)
+
+_Consult more device schemas on [pyserial documenation page](https://pyserial.readthedocs.io/en/latest/url_handlers.html)._
 
 
 ## Caviats
