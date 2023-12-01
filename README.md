@@ -19,11 +19,11 @@ $ mavsniff replay --file recording.pcapng --device udpout://localhost:5467
 ```
 
 Example of available devices:
- * `/dev/ttyS0` - standard serial port on UNIX systems
- * `COMx` - e.g. COM1 or COM4 - standard serial ports on Windows systems
- * `udpin://<host>:<port>` - receive packets via UDP (only for `capture` command)
- * `udpout://<host>:<port>` - send packets via UDP (only for `replay` command)
- * `loop://` - for local testing (do not send more than 100 packets)
+ * `--device /dev/ttyS0` - standard serial port on UNIX systems
+ * `--device COMx` - e.g. COM1 or COM4 - standard serial ports on Windows systems
+ * `--device udpin://<host>:<port>` - receive packets via UDP (only for `capture` command)
+ * `--device udpout://<host>:<port>` - send packets via UDP (only for `replay` command)
+ * `--device loop://` - for local testing (do not send more than 100 packets)
 
 _Consult more device schemas on [pyserial documenation page](https://pyserial.readthedocs.io/en/latest/url_handlers.html)._
 

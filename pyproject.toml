@@ -16,6 +16,11 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+dependencies = [
+    'pymavlink',
+    'pyserial',
+    'python-pcapng',
+]
 
 [project.urls]
 Homepage = "https://github.com/katomaso/mavsniff"
@@ -23,3 +28,6 @@ Issues = "https://github.com/katomaso/mavsniff/issues"
 
 [project.scripts]
 mavsniff = "mavsniff:__main__"
+
+[project.optional-dependencies]
+dev = ['build', "wheel", 'pytest', 'twine']
