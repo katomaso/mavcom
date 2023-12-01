@@ -1,16 +1,26 @@
 import argparse
-from mavcom.pcap import PCAPFile
+import serial
+
+from mavcom.utils.log import logger
+from mavcom.capture import Capture
 
 class CaptureCommand:
-    def parser(self):
-        parser = argparse.ArgumentParser(prog="capture", description="capture mavlink packets and save them to pcap file")
-        parser.add_argument("--device", "-d", required=True, dest="device")
-        return parser
 
     def run(self, args: argparse.Namespace):
-        with open(args.file, 'wb') as output_file:
-            pcap_file = PCAPFile(output_file, mode='w', linktype=147) # special trick: linktype USER0
-            # for packet in device:
-            #     pcap_file.write()
-            # device.close()
+        logger.debug(f"opening {args.file} for writing")
+        try:
+            file = open(args.file, 'wb')
+            device = serial.serial_for_url(args.device)
+            captured = Capture(device, file).run(limit=args.limit)
+            logger.info(f"captured {captured} valid MAVLink packets")
+        except serial.SerialException as err:
+            logger.error(f"failed to open {args.device} for reading")
+            raise
+        except IOError as err:
+            logger.error(f"failed to open {args.file} for writing")
+            raise
+        finally:
+            if device.is_open:
+                device.close()
+            file.close()
 
