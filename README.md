@@ -2,7 +2,7 @@
 
 Capture and replay MAVLink packets from your drone or GCS.
 
-You can read from a serial line (_ttyS0/COMx_) or from network (_UDP/TCP_). Mavsniff stores packets in pcapng format
+You can read from a serial line (_ttyS0/COMx_) or from network (_TCP_). Mavsniff stores packets in pcapng format
 so you can analyse them with Wireshark.
 
 ## Instalation
@@ -15,17 +15,16 @@ Mavsniff is distributed via PYPI and an entrypoint `mavsniff` should be availabl
 
 ```bash
 $ mavsniff capture --device /dev/ttyS0 --file recording.pcapng
-$ mavsniff replay --file recording.pcapng --device udpout://localhost:5467 
+$ mavsniff replay --file recording.pcapng --device socket://localhost:5467 
 ```
 
-Example of available devices:
+Available device urls:
  * `-d /dev/ttyS0` - standard serial port on UNIX systems
  * `-d COMx` - e.g. COM1 or COM4 - standard serial ports on Windows systems
- * `-d udpin://<host>:<port>` - receive packets via UDP (only for `capture` command)
- * `-d udpout://<host>:<port>` - send packets via UDP (only for `replay` command)
- * `-d loop://` - for local testing (do not send more than 100 packets)
-
-_Consult more device schemas on [pyserial documenation page](https://pyserial.readthedocs.io/en/latest/url_handlers.html)._
+ * `-d socket://<host>:<port>` - receive packets via TCP (only for `capture` command)
+ * currently, there is no option how to **send** MAVLink packets over the network.
+ 
+_Consult more device urls on [pyserial documenation page](https://pyserial.readthedocs.io/en/latest/url_handlers.html)._
 
 
 ## Caviats

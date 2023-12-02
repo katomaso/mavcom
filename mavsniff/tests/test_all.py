@@ -86,6 +86,31 @@ def test_capture_replay():
     assert all(1.15 > t > 0.08 for t in times[1:])
 
 
+def test_socket():
+    import socket
+    """Test full circle - capture packets into a pcapng file and then replay them back."""
+    buffer = io.BytesIO()
+    
+    server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_sock.bind(("127.0.0.1", 5487))
+    server_sock.listen(1)
+    def _write_packets():
+        sock, _ = server_sock.accept()
+        server_device = serial.urlhandler.protocol_socket.Serial(None)
+        server_device._socket = sock
+        server_device.is_open = True
+        _packet_generator(MavSerial(server_device, source_system=42))
+        sock.close()
+
+    t = threading.Thread(target=_write_packets); t.start()
+
+    device = serial.serial_for_url("socket://127.0.0.1:5487")
+    Capture(device, buffer).run(); t.join()
+    server_sock.close()
+
+    assert buffer.tell() > 0
+
+
 def _packet_generator(mavlink: MavSerial):
     for seq in range(1, 5):
         if seq % 2 == 0:

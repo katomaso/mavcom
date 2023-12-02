@@ -23,7 +23,7 @@ class MavSerial(mavutil.mavfile):
             from pymavlink.dialects.v20 import common as mavlink2
             self.mav = mavlink2.MAVLink(self, srcSystem=source_system, srcComponent=source_component)
         # if you reach buffer size (4096) when using `loop://` then the program will hang unless you have the write timeout set
-        if "loop" in self.port.name and not self.port.write_timeout:
+        if self.port.name is not None and "loop" in self.port.name and not self.port.write_timeout:
             self.port.write_timeout = 0.1
 
     def on_message_received(self, fn: Callable[[mavutil.mavfile, mavlink2.MAVLink_message], None]):

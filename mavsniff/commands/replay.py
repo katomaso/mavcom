@@ -8,18 +8,24 @@ class ReplayCommand:
 
     def run(self, args: argparse.Namespace):
         logger.debug(f"opening {args.file} for reading")
+
+        file = None
         try:
             file = open(args.file, 'rb')
-            device = serial.serial_for_url(args.device)
-            replayed = Replay(file, device).run(limit=args.limit)
-            logger.info(f"replayed {replayed} valid MAVLink packets")
-        except serial.SerialException as err:
-            logger.error(f"failed to open {args.device} for writing")
-            raise
-        except IOError as err:
+        except IOError:
             logger.error(f"failed to open {args.file} for reading")
             raise
+
+        device = None
+        try:
+            device = serial.serial_for_url(args.device)
+        except serial.SerialException:
+            logger.error(f"failed to open {args.device} for writing")
+            raise
+
+        try:
+            replayed = Replay(file, device).run(limit=args.limit)
+            logger.info(f"replayed {replayed} valid MAVLink packets")
         finally:
-            if device.is_open:
-                device.close()
             file.close()
+            device.close()
