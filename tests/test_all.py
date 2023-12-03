@@ -121,3 +121,43 @@ def _packet_generator(mavlink: MavSerial):
     mavlink.close()
 
 
+def test_capture_garbage():
+    """Simple test that packets get captured with correct timing"""
+    device = serial.serial_for_url("loop://")
+    buffer = io.BytesIO()
+
+    # step 1: generate packets with pauses between them and save those into a in-memory pcapng file."""
+    ## start reading thread that blocks while waiting for IO
+    t = threading.Thread(target=Capture(device, buffer).run)
+    t.start(); time.sleep(0.01)
+    
+    ## start generating packets
+    _packet_and_garbage_generator(MavSerial(device, source_system=42))
+    t.join()
+
+    # step 2: read the in-memory file and check that the timing of packets is saved correctly
+    buffer.seek(0)
+    packets = list(pcapng.FileScanner(buffer))
+
+    assert len(packets) == 2+4 # 2 section headers, 4 packets
+    assert isinstance(packets[0], pcapng.blocks.SectionHeader)
+    assert isinstance(packets[1], pcapng.blocks.InterfaceDescription)
+    assert isinstance(packets[2], pcapng.blocks.EnhancedPacket)
+
+
+def _packet_and_garbage_generator(mavlink: MavSerial):
+    mavlink.write(b'garbage')
+    mavlink.set_mode_loiter()
+    time.sleep(0.1)
+    mavlink.set_mode_manual()
+    ping_bytes = bytearray(mavlink2.MAVLink_ping_message(time_usec=time.time_ns()//1000, seq=3, target_system=42, target_component=0).pack(mavlink.mav))
+    ping_bytes[4] += 0x05
+    mavlink.write(ping_bytes)
+    time.sleep(0.1)
+    mavlink.set_mode_loiter()
+    time.sleep(0.1)
+    mavlink.set_mode_manual()
+    time.sleep(0.1)
+    mavlink.close()
+
+
