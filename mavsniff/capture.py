@@ -30,15 +30,22 @@ class Capture:
         }))
         signal.signal(signal.SIGINT, self.stop)
 
-    def run(self, limit=-1) -> int:
+    def run(self, limit=-1, limit_invalid_packets=-1) -> int:
         """Store Mavlink messages into a PCAPNG file"""
         self.writer = pcapng.FileWriter(self.file, self.sbh)
         self.done = False
         received = 0
+        parse_errors = 0
         proceed = lambda: not self.done and (limit < 0 or received < limit)
         while proceed():
             try:
                 msg = self.device.recv_msg()
+                parse_errors = 0
+            except self.device.ParseError:
+                parse_errors += 1
+                if limit_invalid_packets > 0 and parse_errors > limit_invalid_packets:
+                    raise RuntimeError("Too many invalid packets in a row")
+                continue
             except serial.SerialException:
                 logger.info("serial line closed")
                 break
