@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mavsniff"
-version = "0.0.1"
+version = "0.0.3"
 authors = [
   { name="Tomas Peterka", email="prestizni@gmail.com" },
 ]
@@ -17,6 +17,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
+    'click',
     'pymavlink',
     'pyserial',
     'python-pcapng',
