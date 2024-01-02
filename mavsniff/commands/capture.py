@@ -10,7 +10,9 @@ from mavsniff.capture import Capture
 @click.option("--device", "-d", "device_path", required=True, help="device (/dev/ttyUSB0 or /dev/ttyS0 on linux, COM1 on windows or simply loop:// for testing)")
 @click.option("--limit", "-l", default=-1, type=int, help="limit the number of read/written packets (default -1 unlimited)")
 @click.option("--verbose", "-v", is_flag=True, default=False, help="enable debug logging")
-def capture(path, device_path, limit, verbose):
+@click.option("--mavlink-version", "-m", type=int, default=2, help="Set mavlink protocol version (options: 1,2; default: 2)")
+@click.option("--baud", "-b", type=int, help="Serial communication baud rate")
+def capture(path, device_path, limit, verbose, mavlink_version, baud=None):
     logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO)
 
     file = None
@@ -21,14 +23,17 @@ def capture(path, device_path, limit, verbose):
         raise
 
     device = None
+    serial_kw = {}
     try:
-        device = serial.serial_for_url(device_path)
+        if baud is not None:
+            serial_kw['baudrate'] = baud
+        device = serial.serial_for_url(device_path, **serial_kw)
     except serial.SerialException:
         logger.error(f"failed to open {device_path} for reading")
         raise
 
     try:
-        Capture(device, file).run(limit=limit)
+        Capture(device, file, mavlink_version=mavlink_version).run(limit=limit)
     finally:
         device.close()
         file.close()

@@ -4,6 +4,7 @@ from collections.abc import Callable
 from pymavlink import mavutil
 from pymavlink.dialects.v20 import common as mavlink2
 
+from .log import logger
 
 class MavSerial(mavutil.mavfile):
     '''Serial mavlink port'''
@@ -14,6 +15,7 @@ class MavSerial(mavutil.mavfile):
         self.force_connected = False
         self.port = serial
         super().__init__(None, serial.name, source_system=source_system, source_component=source_component, use_native=use_native)
+        logger.debug(f"opened serial port {self.name} at {self.baudrate} baud")
         self.rtscts = False
         # correct mavlink serializer (self.mav) not to depend on environmental variables
         if mavlink_version == 1:
@@ -24,6 +26,7 @@ class MavSerial(mavutil.mavfile):
             from pymavlink.dialects.v20 import common as mavlink2
             self.mav = mavlink2.MAVLink(self, srcSystem=source_system, srcComponent=source_component)
             self.ParseError = mavlink2.MAVError
+        logger.debug(f"Mavlink message length: {self.mav.bytes_needed()}")
         # if you reach buffer size (4096) when using `loop://` then the program will hang unless you have the write timeout set
         if self.port.name is not None and "loop" in self.port.name and not self.port.write_timeout:
             self.port.write_timeout = 0.1
