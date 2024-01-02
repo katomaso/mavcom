@@ -13,6 +13,7 @@ from mavsniff.capture import Capture
 @click.option("--mavlink-version", "-m", type=int, default=2, help="Set mavlink protocol version (options: 1,2; default: 2)")
 @click.option("--baud", "-b", type=int, help="Serial communication baud rate")
 def capture(path, device_path, limit, verbose, mavlink_version, baud=None):
+    """Capture mavlink communication from a serial device and store it into a pcapng file"""
     logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO)
 
     file = None

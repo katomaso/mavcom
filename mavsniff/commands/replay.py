@@ -11,6 +11,7 @@ from mavsniff.replay import Replay
 @click.option("--limit", "-l", default=-1, type=int, help="limit the number of read/written packets (default -1 unlimited)")
 @click.option("--verbose", "-v", is_flag=True, default=False, help="enable debug logging")
 def replay(path, device_path, verbose, limit):
+    """Replay mavlink communication from a pcapng file to a serial device"""
     logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO)
 
     file = None
