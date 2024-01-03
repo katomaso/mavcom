@@ -1,85 +1,41 @@
-import serial
-from collections.abc import Callable
-
 from pymavlink import mavutil
-from pymavlink.dialects.v20 import common as mavlink2
+from pymavlink.generator import mavparse
 
 from .log import logger
 
-class MavSerial(mavutil.mavfile):
-    '''Serial mavlink port'''
-    def __init__(self, serial: serial.Serial, source_system=255, source_component=0, use_native=False, mavlink_version=2):
-        self.baudrate = serial.baudrate
-        self.name = serial.name
-        self.autoreconnect = False
-        self.force_connected = False
-        self.port = serial
-        super().__init__(None, serial.name, source_system=source_system, source_component=source_component, use_native=use_native)
-        logger.debug(f"opened serial port {self.name} at {self.baudrate} baud")
-        self.rtscts = False
-        # correct mavlink serializer (self.mav) not to depend on environmental variables
-        if mavlink_version == 1:
-            from pymavlink.dialects.v10 import common as mavlink1
-            self.mav = mavlink1.MAVLink(self, srcSystem=source_system, srcComponent=source_component)
-            self.ParseError = mavlink1.MAVError
-        else:
-            from pymavlink.dialects.v20 import common as mavlink2
-            self.mav = mavlink2.MAVLink(self, srcSystem=source_system, srcComponent=source_component)
-            self.ParseError = mavlink2.MAVError
-        logger.debug(f"Mavlink message length: {self.mav.bytes_needed()}")
-        # if you reach buffer size (4096) when using `loop://` then the program will hang unless you have the write timeout set
-        if self.port.name is not None and "loop" in self.port.name and not self.port.write_timeout:
-            self.port.write_timeout = 0.1
+# HACK: fixup - do not fill RAM with mavlink messages when sniffing
+mavutil.add_message = lambda messages, mtype, msg: None
 
-    def on_message_received(self, fn: Callable[[mavutil.mavfile, mavlink2.MAVLink_message], None]):
-        self.message_hooks.append(fn)
+def mavlink(uri:str, input:bool, version:int=2, dialect:str=None, **kwargs) -> mavutil.mavfile:
+    """
+    Create mavlink IO device
+    @param uri: device path (e.g. udp://localhost:14445, tcp://localhost:14550, /dev/ttyUSB0, /dev/ttyS0, COM1...)
+    @param dialect: MAVLink dialect (all, ardupilotmega, common, pixhawk...) @see pymavlink.dialects for more
+    """
+    if input: # the names for input and output are not consistent in pymavlink
+        if uri.startswith("tcpin:"):
+            uri = "tcp:" + uri[6:]
+        if uri.startswith("udp:"):
+            uri = "udpin:" + uri[4:]
+    else:
+        if uri.startswith("tcp:"):
+            uri = "tcpout:" + uri[4:]
+        if uri.startswith("udp:"):
+            uri = "udpout:" + uri[4:]
 
-    def set_baudrate(self, baudrate):
-        '''set baudrate'''
-        try:
-            self.port.setBaudrate(baudrate)
-        except Exception:
-            # for pySerial 3.0, which doesn't have setBaudrate()
-            self.port.baudrate = baudrate
+    if "://" in uri: # allow people to write URL-like paths
+        uri = ":".join(uri.split("://", 1)) # pymavlink expects `udp:localhost:14550` instead of `udp://localhost:14550`
 
-    def close(self):
-        self.port.close()
+    m = mavutil.mavlink_connection(uri, input=input, dialect=dialect, **clean(kwargs))
+    if m is None:
+        return None
 
-    def recv(self,n=None):
-        if n is None:
-            n = self.mav.bytes_needed()
-        if self.fd is None:
-            waiting = self.port.inWaiting()
-            if waiting < n:
-                n = waiting
-        ret = self.port.read(n)
-        return ret
-    
-    def __iter__(self):
-        return self
+    if uri.startswith("loop"): # if you reach buffer size (4096) when using `loop` then the program will hang unless you have the write timeout set
+        m.write_timeout = 0.1
+    if not input:
+        m.WIRE_PROTOCOL_VERSION = mavparse.PROTOCOL_1_0 if version == 1 else mavparse.PROTOCOL_2_0
+    return m
 
-    def __next__(self):
-        '''handle mavlink packets'''
-        while True:
-            try:
-                msg = self.recv_msg()
-                if msg is None:
-                    continue
-                if msg.get_type() == "BAD_DATA":
-                    continue
-                return msg
-            except serial.SerialException as e:
-                raise StopIteration()
-
-    def write(self, buf: bytes):
-        try:
-            return self.port.write(bytes(buf))
-        except Exception:
-            return -1
-
-    def reset(self):
-        raise RuntimeError("cannot reset serial port in MavSerial wrapper")
-
-    def post_message(self, msg):
-        # do not save messages into a in-memory queue
-        pass
+def clean(kwargs:dict) -> dict:
+    """Remove None values from a dictionary"""
+    return {k: v for k, v in kwargs.items() if v is not None}

@@ -1,6 +1,5 @@
 import pcapng
 import serial
-import io
 import time
 import struct
 
@@ -8,53 +7,31 @@ import signal
 import time
 import threading
 
-from mavsniff.utils.mav import MavSerial
+from mavsniff.utils.mav import mavlink
 from mavsniff.utils.log import logger
-
+from mavsniff.utils.ip import udp_header
 
 class Capture:
     """Capture reads Mavlink messages from a device and store them into a PCAPNG file"""
 
-    __udp_header_static = bytes((
-        0x02, 0x00, 0x00, 0x00, # IP
-        0x45, # v4 + header length(1byte)
-        0x00, # DSCP + ECN
-        0x00, 0x39, # total length
-        0x55, 0x8d, 0x00, 0x00, # identification + fragment offser
-        0x80, 0x11, 0x00, 0x00, # ethertype(UDP) + flags + header checksum
-        0x7f, 0x00, 0x00, 0x01, # src IP
-        0x7f, 0x00, 0x00, 0x01, # dest IP
-        0x38, 0xd6, # src port
-        0x38, 0x6d, # dst port
-    ))
-
-    @staticmethod
-    def __udp_header(seq, dl) -> bytes:
-        return bytes((
-            0x02, 0x00, 0x00, 0x00, # IP
-            0x45, # v4//1b + header length(20)//1b
-            0x00, # DSCP + ECN
-        )) + struct.pack(">HH", 20 + dl, seq) + bytes(( # total length
-            0x00, 0x00, # fragment offser
-            0x80, 0x11, 0x00, 0x00, # ethertype(UDP) + flags + header checksum
-            0x7f, 0x00, 0x00, 0x01, # src IP
-            0x7f, 0x00, 0x00, 0x01, # dest IP
-            0x38, 0xd6, # src port
-            0x38, 0x6d, # dst port
-        )) + struct.pack('>HH', dl, 0) # length + checksum
-
-    def __init__(self, device: serial.Serial, file: io.BytesIO, mavlink_version=2):
-        self.file = file
-        self.done = False
+    def __init__(self, device: str, file: str, mavlink_version=2, mavlink_dialect=None, **mavlinkw):
+        self.device = mavlink(device, input=True, version=mavlink_version, dialect=mavlink_dialect, **mavlinkw)
+        if self.device is None:
+            raise RuntimeError(f"Url {device} is not supported by pymavlink library")
+        try:
+            self.file = open(file, "wb")
+        except:
+            self.device.close()
+            raise
         self.interface_id=0x00
-        self.device = MavSerial(device, mavlink_version=mavlink_version)
+        self.done = False
         self.sbh = pcapng.blocks.SectionHeader(msgid=0, endianness="<", options={
             'shb_userappl': 'mavsniff',
         })
         self.sbh.register_interface(pcapng.blocks.InterfaceDescription(msdgid=0x01, endianness="<", interface_id=self.interface_id, section=self.sbh, options={
-            'if_name': self.device.name,
-            'if_txspeed': self.device.baudrate,
-            'if_rxspeed': self.device.baudrate,
+            'if_name': device if ":" not in device else device.split(":")[1],
+            'if_txspeed': getattr(self.device, "baudrate", 0),
+            'if_rxspeed': getattr(self.device, "baudrate", 0),
             'if_tsresol': struct.pack('<B', 6), # negative power of 10
             # should we deal with timestamp resolution?
         }))
@@ -113,7 +90,7 @@ class Capture:
     def _write_packet(self, seq:int, data: bytes):
         """Write packet to the device"""
         now_us = time.time_ns() // 1000
-        payload = Capture.__udp_header(seq, len(data)) + data
+        payload = udp_header(seq, len(data)) + data
         self.writer.write_block(pcapng.blocks.EnhancedPacket(
             section=self.sbh,
             interface_id=self.interface_id,
@@ -132,5 +109,12 @@ class Capture:
         ))
 
     def stop(self, *args):
-        logger.debug(f"graceful shutdown {args}")
         self.done = True
+
+    def close(self):
+        if self.file is not None:
+            self.file.close()
+            self.file = None
+        if self.device is not None:
+            self.device.close()
+            self.device = None

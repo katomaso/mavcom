@@ -25,9 +25,10 @@ VERSIONS = (mavparse.PROTOCOL_0_9, mavparse.PROTOCOL_1_0, mavparse.PROTOCOL_2_0)
 @click.command()
 @click.option('--wireshark-plugin-dir', default=None, help="Wireshark plugin directory")
 @click.option('--override', is_flag=True, default=False, help="Replace existing plugin")
+@click.option('--delete', is_flag=True, default=False, help="Delete existing plugin")
 @click.option("--version", "-m", default=mavgen.DEFAULT_WIRE_PROTOCOL, show_default=True, help="Mavlink version; choices: "+str(VERSIONS))
 @click.argument('dialects', nargs=-1)
-def wsplugin(dialects, version, wireshark_plugin_dir, override) -> int:
+def wsplugin(dialects, version, wireshark_plugin_dir, override, delete) -> int:
     """Build and install Mavlink plugin for Wireshark"""
     if version not in VERSIONS:
         click.echo(f"[ERROR] Invalid mavlink version: {version}")
@@ -55,6 +56,14 @@ def wsplugin(dialects, version, wireshark_plugin_dir, override) -> int:
     plugin_file = wireshark_plugin_path / plugin_name
     version_file = plugin_file.with_stem(".version")
 
+    if delete:
+        if plugin_file.exists():
+            plugin_file.unlink()
+        if version_file.exists():
+            version_file.unlink()
+        click.echo(f"[INFO] Deleted {plugin_file}")
+        return 0
+
     if not dialects:
         dialects = ("all",)
         click.echo(f"[INFO] No dialects specified, using: {dialects}")
@@ -77,8 +86,8 @@ def wsplugin(dialects, version, wireshark_plugin_dir, override) -> int:
         return 1
 
     Path(plugin_name).replace(plugin_file)
-    version_file.write_text(f"""
-Pymavlink version: {pymavlink.__version__}
+    version_file.write_text(
+f"""Pymavlink version: {pymavlink.__version__}
 Built at: {datetime.now()}
 Dialects: {dialects}
 """)
