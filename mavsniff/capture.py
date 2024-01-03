@@ -7,7 +7,7 @@ import signal
 import time
 import threading
 
-from mavsniff.utils.mav import mavlink
+from mavsniff.utils.mav import mavlink, ParseError
 from mavsniff.utils.log import logger
 from mavsniff.utils.ip import udp_header
 
@@ -48,46 +48,37 @@ class Capture:
         empty_messages = 0
         bad_messages = 0
         other_messages = 0
-        proceed = lambda: not self.done and (limit < 0 or received < limit)
 
         def report_stats():
-            while proceed():
-                logger.info(f"parsed {received}, not-parsed: {other_messages}, empty: {empty_messages}, bad: {bad_messages}\r")
+            while not self.done:
+                logger.info(f"captured {received}, not-parsed: {other_messages}, empty: {empty_messages}, bad: {bad_messages}\r")
                 time.sleep(1.0)
         threading.Thread(target=report_stats).start()
 
-        try:
-            while proceed():
-                try:
-                    msg = self.device.recv_msg()
-                    parse_errors = 0
-                    if msg is None:
-                        empty_messages += 1
-                        continue
-                    if msg.get_type() == 'BAD_DATA':
-                        bad_messages += 1
-                        continue
-                    received += 1
-                    self._write_packet(received, msg.pack(self.device.mav))
-                except self.device.ParseError:
-                    parse_errors += 1
-                    other_messages += 1
-                    if limit_invalid_packets > 0 and parse_errors > limit_invalid_packets:
-                        raise RuntimeError("Too many invalid packets in a row")
+        while not self.done:
+            try:
+                msg = self.device.recv_msg()
+                parse_errors = 0
+                if msg is None:
+                    empty_messages += 1
                     continue
-                except serial.SerialException:
-                    logger.info("serial line closed")
+                if msg.get_type() == 'BAD_DATA':
+                    bad_messages += 1
+                    continue
+                received += 1
+                self._write_packet(received, msg.pack(self.device.mav))
+                if limit > 0 and received >= limit:
                     break
-        finally:
-            self.done = True
-
-        return {
-            "received": received,
-            "parse_errors": parse_errors,
-            "empty_messages": empty_messages,
-            "bad_messages": bad_messages,
-            "other_messages": other_messages,
-        }
+            except ParseError:
+                parse_errors += 1
+                other_messages += 1
+                if limit_invalid_packets > 0 and parse_errors > limit_invalid_packets:
+                    raise RuntimeError("Too many invalid packets in a row")
+                continue
+            except serial.SerialException:
+                logger.info("serial line closed")
+                break
+        return received
 
     def _write_packet(self, seq:int, data: bytes):
         """Write packet to the device"""
@@ -114,6 +105,7 @@ class Capture:
         self.done = True
 
     def close(self):
+        self.stop()
         if self.file is not None:
             self.file.close()
             self.file = None

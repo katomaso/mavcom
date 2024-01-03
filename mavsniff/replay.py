@@ -43,26 +43,24 @@ class Replay:
                 time.sleep(1.0)
         threading.Thread(target=report_stats).start()
 
-        try:
-            for packet in scanner:
-                if packet is None:
-                    if empty > suspicious_amount:
-                        break
-                    empty += 1
-                    continue
-                if packet.magic_number != PACKET_MAGIC:
-                    if non_data > suspicious_amount:
-                        break
-                    non_data += 1
-                    continue
-                # TODO: check mavlink packet
-                sleep_time += self._send_in_timely_manner(packet); written += 1
-                if limit > 0 and written >= limit:
-                    logger.info(f"reached limit of {limit} packets")
+        for packet in scanner:
+            if self.done:
+                break
+            if packet is None:
+                if empty > suspicious_amount:
                     break
-        finally:
-            self.done = True
-
+                empty += 1
+                continue
+            if packet.magic_number != PACKET_MAGIC:
+                if non_data > suspicious_amount:
+                    break
+                non_data += 1
+                continue
+            # TODO: check mavlink packet
+            sleep_time += self._send_in_timely_manner(packet); written += 1
+            if limit > 0 and written >= limit:
+                break
+        self.done = True
         return written
 
 
@@ -83,6 +81,7 @@ class Replay:
 
     def close(self):
         """Close the device"""
+        self.stop()
         if self.device is not None:
             self.device.close()
             self.device = None

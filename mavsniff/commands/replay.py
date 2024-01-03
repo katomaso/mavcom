@@ -1,6 +1,5 @@
 import click
 import logging
-import serial
 
 from mavsniff.utils.log import logger
 from mavsniff.replay import Replay

@@ -1,7 +1,7 @@
 from pymavlink import mavutil
 from pymavlink.generator import mavparse
 
-from .log import logger
+ParseError = mavparse.MAVParseError
 
 # HACK: fixup - do not fill RAM with mavlink messages when sniffing
 mavutil.add_message = lambda messages, mtype, msg: None

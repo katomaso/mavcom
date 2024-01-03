@@ -18,6 +18,7 @@ def capture(device:str, file:str, limit:int, verbose:bool, mavlink_version:int, 
     logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO)
     c = Capture(device=device, file=file, mavlink_dialect=mavlink_dialect, mavlink_version=mavlink_version, **kwargs)
     try:
-        c.run(limit=limit)
+        captured = c.run(limit=limit)
+        logger.info(f"captured {captured} valid MAVLink packets")
     finally:
         c.close()
