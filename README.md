@@ -1,9 +1,8 @@
 # mavsniff
 
-Capture and replay MAVLink packets from your drone or GCS.
+Capture and replay MAVLink packets from your drone or GCS. Works on Linux and Windows.
 
-You can read from a serial line (_ttyS0/COMx_) or from network (_TCP_). Mavsniff stores packets in pcapng format
-so you can analyse them with Wireshark.
+You can read from a serial line (_/dev/ttyXXX or COMx_) or even from network (TCP and UDP). Mavsniff stores packets in pcapng format so you can analyse them with Wireshark.
 
 ## Instalation
 
@@ -14,20 +13,33 @@ Mavsniff is distributed via PYPI and an entrypoint `mavsniff` should be availabl
 ## Usage
 
 ```bash
-$ mavsniff capture --device /dev/ttyS0 --file recording.pcapng
-$ mavsniff replay --file recording.pcapng --device socket://localhost:5467 
+$ mavsniff capture --device udp://localhost:5467 --file recording  # will append .pcapng to the file name autom7y
+$ mavsniff replay -f recording -d /dev/ttyS0 --baud=57600 # for serial line, specify baud if different from 115200
+$ mavsniff ports # show available serial ports
+$ mavsniff wsplugin # install Wireshark MAVlink disector plugin for reading Mavlink packets
 ```
 
 Available device urls:
  * `-d /dev/ttyS0` - standard serial port on UNIX systems
- * `-d COMx` - e.g. COM1 or COM4 - standard serial ports on Windows systems
- * `-d socket://<host>:<port>` - receive packets via TCP (only for `capture` command)
+ * `-d COMx` - from COM1 to COM8 - standard serial ports on Windows systems
+ * `-d udp://<host>:<port>` or `tcp://<host>:<port>` - receive or send packets over network (TCP or UDP)
  * currently, there is no option how to **send** MAVLink packets over the network.
- 
-_Consult more device urls on [pyserial documenation page](https://pyserial.readthedocs.io/en/latest/url_handlers.html)._
 
 
-## Caviats
+## Developement
 
-When using a `loop://` device please note that there is a finite buffer size (usually 4096 bytes). Do not
-send larger files there withou reading from the buffer in parallel.
+Start developing by cloning the repo and installing tha application locally
+
+```bash
+$ git clone git@github.com:katomaso/mavsniff.git && cd mavsniff
+$ python -m venv .venv
+$ pip install -e .[dev]  # to install even the extra dev dependencies
+```
+
+After developing new features, run tests and build and publish new package
+
+```bash
+$ pytest
+$ python3 -m build
+$ python -m twine upload dist/*
+```
