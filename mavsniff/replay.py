@@ -34,12 +34,11 @@ class Replay:
         empty = 0
         non_data = 0
         sleep_time = 0.0
-        suspicious_amount = 100
         proceed = lambda: not self.done and (limit < 0 or written < limit)
 
         def report_stats():
             while proceed():
-                logger.info(f"replayed {written}, empty: {empty}, non-data: {non_data}, slept: {sleep_time:.2}s\r")
+                logger.info(f"replayed {written}, empty: {empty}, non-data: {non_data}, slept: {sleep_time:.2}s")
                 time.sleep(1.0)
         threading.Thread(target=report_stats).start()
 
@@ -47,13 +46,9 @@ class Replay:
             if self.done:
                 break
             if packet is None:
-                if empty > suspicious_amount:
-                    break
                 empty += 1
                 continue
             if packet.magic_number != PACKET_MAGIC:
-                if non_data > suspicious_amount:
-                    break
                 non_data += 1
                 continue
             # TODO: check mavlink packet

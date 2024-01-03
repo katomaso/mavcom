@@ -51,7 +51,7 @@ class Capture:
 
         def report_stats():
             while not self.done:
-                logger.info(f"captured {received}, not-parsed: {other_messages}, empty: {empty_messages}, bad: {bad_messages}\r")
+                logger.info(f"captured {received}, not-parsed: {other_messages}, empty: {empty_messages}, bad: {bad_messages}")
                 time.sleep(1.0)
         threading.Thread(target=report_stats).start()
 

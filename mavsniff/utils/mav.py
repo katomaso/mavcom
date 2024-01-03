@@ -1,6 +1,8 @@
 from pymavlink import mavutil
 from pymavlink.generator import mavparse
 
+from .log import logger
+
 ParseError = mavparse.MAVParseError
 
 # HACK: fixup - do not fill RAM with mavlink messages when sniffing
@@ -13,19 +15,20 @@ def mavlink(uri:str, input:bool, version:int=2, dialect:str=None, **kwargs) -> m
     @param dialect: MAVLink dialect (all, ardupilotmega, common, pixhawk...) @see pymavlink.dialects for more
     """
     if input: # the names for input and output are not consistent in pymavlink
-        if uri.startswith("tcpin:"):
-            uri = "tcp:" + uri[6:]
+        if uri.startswith("tcp:"):
+            uri = "tcpin:" + uri[6:]
         if uri.startswith("udp:"):
             uri = "udpin:" + uri[4:]
     else:
-        if uri.startswith("tcp:"):
-            uri = "tcpout:" + uri[4:]
+        if uri.startswith("tcpout:"):
+            uri = "tcp:" + uri[4:]
         if uri.startswith("udp:"):
             uri = "udpout:" + uri[4:]
 
     if "://" in uri: # allow people to write URL-like paths
         uri = ":".join(uri.split("://", 1)) # pymavlink expects `udp:localhost:14550` instead of `udp://localhost:14550`
 
+    logger.debug(f"creating mavlink device: {uri}")
     m = mavutil.mavlink_connection(uri, input=input, dialect=dialect, **clean(kwargs))
     if m is None:
         return None
