@@ -1,6 +1,6 @@
 import click
 
-from .commands import capture, help, replay, wsplugin
+from .commands import capture, ports, replay, wsplugin
 
 @click.group()
 def main():
@@ -9,6 +9,6 @@ def main():
 main.add_command(capture.capture)
 main.add_command(replay.replay)
 main.add_command(wsplugin.wsplugin)
-main.add_command(help.help)
+main.add_command(ports.ports)
 
 main()
