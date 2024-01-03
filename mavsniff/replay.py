@@ -14,6 +14,8 @@ SECTION_MAGIC = 0x0A0D0D0A
 
 class Replay:
     def __init__(self, file: str, device: str, mavlink_version=2, **mavlinkw):
+        if "." not in file:
+            file = file + ".pcapng"
         self.file = open(file, "rb")
         self.device = mavlink(device, input=False, version=mavlink_version, **mavlinkw)
         self.done = False

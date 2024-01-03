@@ -18,6 +18,8 @@ class Capture:
         self.device = mavlink(device, input=True, version=mavlink_version, dialect=mavlink_dialect, **mavlinkw)
         if self.device is None:
             raise RuntimeError(f"Url {device} is not supported by pymavlink library")
+        if "." not in file:
+            file = file + ".pcapng"
         try:
             self.file = open(file, "wb")
         except:
