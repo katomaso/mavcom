@@ -1,3 +1,4 @@
+import io
 import pcapng
 import serial
 import time
@@ -7,31 +8,26 @@ import signal
 import time
 import threading
 
-from mavsniff.utils.mav import mavlink, ParseError
+from pymavlink import mavutil
+from pymavlink.generator import mavparse
+
 from mavsniff.utils.log import logger
 from mavsniff.utils.ip import udp_header
+
 
 class Capture:
     """Capture reads Mavlink messages from a device and store them into a PCAPNG file"""
 
-    def __init__(self, device: str, file: str, mavlink_version=2, mavlink_dialect=None, **mavlinkw):
-        self.device = mavlink(device, input=True, version=mavlink_version, dialect=mavlink_dialect, **mavlinkw)
-        if self.device is None:
-            raise RuntimeError(f"Url {device} is not supported by pymavlink library")
-        if "." not in file:
-            file = file + ".pcapng"
-        try:
-            self.file = open(file, "wb")
-        except:
-            self.device.close()
-            raise
+    def __init__(self, device: mavutil.mavfile, file: io.BytesIO):
+        self.device = device
+        self.file = file
         self.interface_id=0x00
         self.done = False
         self.sbh = pcapng.blocks.SectionHeader(msgid=0, endianness="<", options={
             'shb_userappl': 'mavsniff',
         })
         self.sbh.register_interface(pcapng.blocks.InterfaceDescription(msdgid=0x01, endianness="<", interface_id=self.interface_id, section=self.sbh, options={
-            'if_name': device if ":" not in device else device.split(":")[1],
+            'if_name': device.address if ":" not in device.address else device.address.split(":")[1],
             'if_txspeed': getattr(self.device, "baudrate", 0),
             'if_rxspeed': getattr(self.device, "baudrate", 0),
             'if_tsresol': struct.pack('<B', 6), # negative power of 10
@@ -69,7 +65,7 @@ class Capture:
                 self._write_packet(received, msg.pack(self.device.mav))
                 if limit > 0 and received >= limit:
                     break
-            except ParseError:
+            except mavparse.MAVParseError:
                 parse_errors += 1
                 other_messages += 1
                 if limit_invalid_packets > 0 and parse_errors > limit_invalid_packets:
@@ -103,12 +99,3 @@ class Capture:
 
     def stop(self, *args):
         self.done = True
-
-    def close(self):
-        self.stop()
-        if self.file is not None:
-            self.file.close()
-            self.file = None
-        if self.device is not None:
-            self.device.close()
-            self.device = None

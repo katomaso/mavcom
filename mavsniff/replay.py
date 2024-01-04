@@ -1,9 +1,11 @@
+import io
 import pcapng
 import signal
 import threading
 import time
 
-from mavsniff.utils.mav import mavlink
+from pymavlink import mavutil
+
 from mavsniff.utils.log import logger
 
 
@@ -13,11 +15,9 @@ SECTION_MAGIC = 0x0A0D0D0A
 
 
 class Replay:
-    def __init__(self, file: str, device: str, mavlink_version=2, **mavlinkw):
-        if "." not in file:
-            file = file + ".pcapng"
-        self.file = open(file, "rb")
-        self.device = mavlink(device, input=False, version=mavlink_version, **mavlinkw)
+    def __init__(self, device: mavutil.mavfile, file: io.BytesIO):
+        self.file = file
+        self.device = device
         self.done = False
         signal.signal(signal.SIGINT, self.stop)
 
@@ -73,13 +73,3 @@ class Replay:
 
     def stop(self, *args):
         self.done = True
-
-    def close(self):
-        """Close the device"""
-        self.stop()
-        if self.device is not None:
-            self.device.close()
-            self.device = None
-        if self.file is not None:
-            self.file.close()
-            self.file = None

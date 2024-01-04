@@ -1,4 +1,5 @@
 import click
+import sys
 
 from .commands import capture, ports, replay, wsplugin
 
@@ -11,4 +12,4 @@ main.add_command(replay.replay)
 main.add_command(wsplugin.wsplugin)
 main.add_command(ports.ports)
 
-main()
+sys.exit(main())

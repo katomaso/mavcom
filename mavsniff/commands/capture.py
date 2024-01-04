@@ -2,8 +2,11 @@ import click
 import logging
 
 from mavsniff.utils.log import logger
+from mavsniff.utils.mav import mavlink
 from mavsniff.capture import Capture
 
+
+as_pcapng = lambda f: f if "." in f else f + ".pcapng"
 
 @click.command()
 @click.option("--file", "-f", required=True, help="pcap file to save the communication to")
@@ -16,9 +19,26 @@ from mavsniff.capture import Capture
 def capture(device:str, file:str, limit:int, verbose:bool, mavlink_version:int, mavlink_dialect:str, **kwargs):
     """Capture mavlink communication from a serial device and store it into a pcapng file"""
     logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO)
-    c = Capture(device=device, file=file, mavlink_dialect=mavlink_dialect, mavlink_version=mavlink_version, **kwargs)
+
+    pcapfile = None
     try:
-        captured = c.run(limit=limit)
+        pcapfile = open(as_pcapng(file), "wb")
+    except Exception as e:
+        logger.error(f"Failed to open file {file}: {e}")
+        return 1
+
+    mavconn = None
+    try:
+        mavconn = mavlink(device, input=True, version=mavlink_version, dialect=mavlink_dialect, **kwargs)
+    except Exception as e:
+        file.close()
+        logger.error(f"Failed to open file {file}: {e}")
+        return 1
+
+    try:
+        captured = Capture(device=mavconn, file=pcapfile).run(limit=limit)
         logger.info(f"captured {captured} valid MAVLink packets")
+        return 0
     finally:
-        c.close()
+        pcapfile.close()
+        mavconn.close()
