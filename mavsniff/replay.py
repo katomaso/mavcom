@@ -7,6 +7,7 @@ import time
 from pymavlink import mavutil
 
 from mavsniff.utils.log import logger
+from mavsniff.utils import ip
 
 
 INTERFACE_MAGIC = 0x00000001
@@ -38,7 +39,7 @@ class Replay:
 
         def report_stats():
             while proceed():
-                logger.info(f"replayed {written}, empty: {empty}, non-data: {non_data}, slept: {sleep_time:.2}s")
+                logger.info(f"replayed {written}, empty: {empty}, unknown: {non_data}, slept: {sleep_time:.2}s")
                 time.sleep(1.0)
         threading.Thread(target=report_stats).start()
 
@@ -51,24 +52,33 @@ class Replay:
             if packet.magic_number != PACKET_MAGIC:
                 non_data += 1
                 continue
-            # TODO: check mavlink packet
-            sleep_time += self._send_in_timely_manner(packet); written += 1
+            if not packet.packet_data:
+                empty += 1
+                continue
+            if packet.packet_data[0] in (0xfe, 0xfd): # mavlink magic bytes (0xfe "v1.0", 0xfd "v2.0")
+                sleep_time += self._send_in_timely_manner(packet.timestamp, packet.packet_data)
+            elif ip.is_packet(packet.packet_data):
+                sleep_time += self._send_in_timely_manner(packet.timestamp, ip.get_payload(packet.packet_data))
+            else:
+                non_data += 1
+                logger.debug(f"unknown packet: {packet.packet_data[:10]}...")
+                continue
+            written += 1
             if limit > 0 and written >= limit:
                 break
         self.done = True
         return written
 
-
-    def _send_in_timely_manner(self, packet) -> float:
+    def _send_in_timely_manner(self, timestamp: float, packet_data: bytes) -> float:
         """Replay a packet to the device"""
-        packet_ts_delta: float = packet.timestamp - self.last_packet_ts
+        packet_ts_delta: float = timestamp - self.last_packet_ts
         since_last_sent: float = time.time() - self.last_sent_ts
         sleep_time = (packet_ts_delta - since_last_sent)
         if sleep_time > 0.00001:
             time.sleep(sleep_time)
-        self.device.write(packet.packet_data)
+        self.device.write(packet_data)
         self.last_sent_ts = time.time()
-        self.last_packet_ts = packet.timestamp
+        self.last_packet_ts = timestamp
         return sleep_time if sleep_time > 0.00001 else 0.0
 
     def stop(self, *args):
