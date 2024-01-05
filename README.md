@@ -25,6 +25,13 @@ Available device urls:
  * `-d udp://<host>:<port>` or `tcp://<host>:<port>` - receive or send packets over network (TCP or UDP)
  * currently, there is no option how to **send** MAVLink packets over the network.
 
+### Using with network
+
+mavsniff uses compatible format of UDP packets with QGroundControl. That means if you capture packets
+emitted (mirrored) by QGroundControl with Wireshark then you will be able to replay those to any serial
+device. Those packets have minimal ethernet header `02 00 00 00` and uses 20 bytes long IP header and
+only 8 bytes for a UDP header. Any other packets will not be replayable by mavsniff.
+
 
 ## Developement
 
